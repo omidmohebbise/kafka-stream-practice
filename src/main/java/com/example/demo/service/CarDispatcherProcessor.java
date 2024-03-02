@@ -4,6 +4,7 @@ package com.example.demo.service;
 import com.example.demo.model.Car;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KeyValue;
@@ -15,7 +16,8 @@ import org.springframework.stereotype.Service;
 import static com.example.demo.config.KStreamConfig.*;
 
 @Service
-public class CarConsumer {
+@Log4j2
+public class CarDispatcherProcessor {
     private static final Serde<String> STRING_SERDE = Serdes.String();
 
     @Autowired
@@ -46,21 +48,7 @@ public class CarConsumer {
                 .to(BMW_SUPPORT_TOPIC, Produced.with(STRING_SERDE, STRING_SERDE));
 
 
-        messageStream.map((key, value) -> {
-                    try {
-                        System.out.println("value = " + value);
-                        var car =  new JsonMapper().readValue(value, Car.class);
-                        return new KeyValue<>(key, car);
-                    } catch (JsonProcessingException e) {
-                        e.printStackTrace();
-                        return null;
-                    }
-
-                })
-                .filter((key, value) -> value != null)
-                .filter((key, value) -> value.getPrice() > 2000)
-                .map((key, value) -> new KeyValue<>(value.getUuid(), value.getBrand()))
-
+        messageStream
                 .to(CARS_PROCESSED_TOPIC, Produced.with(STRING_SERDE, STRING_SERDE));
 
 

@@ -3,11 +3,14 @@ package com.example.demo.service;
 import com.example.demo.model.Car;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static com.example.demo.config.KStreamConfig.CARS_TOPIC;
 
@@ -19,11 +22,19 @@ public class CarProducer {
 
 
     public void produce(String brand, String model, String color, int year, int price) {
-        var car = new Car(UUID.randomUUID().toString(),brand, model, color, year, price);
-        kafkaTemplate.send(CARS_TOPIC, UUID.randomUUID().toString(),car);
+        var car = new Car(UUID.randomUUID().toString(), brand, model, color, year, price);
+        CompletableFuture<SendResult<String, Object>> result = null;
+
+        result = kafkaTemplate.send(CARS_TOPIC, UUID.randomUUID().toString(), car);
+
+        result.whenComplete((success, failure) -> {
+            if (failure != null) {
+                failure.printStackTrace();
+            }
+        });
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 3000)
     public void produce() {
         String[] carMakes = {"Toyota", "Honda", "Ford", "Chevrolet", "BMW"};
         String[] carModels = {"Corolla", "Civic", "F-150", "Silverado", "3 Series"};
